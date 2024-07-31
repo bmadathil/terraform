@@ -1,0 +1,199 @@
+
+provider "kubernetes" {
+  config_path = var.kubeconfig
+} 
+
+provider "helm" {
+  kubernetes {
+    config_path = var.kubeconfig
+  }
+}
+  
+provider "aws" { 
+  region = var.region
+}   
+
+data "aws_caller_identity" "current" {}
+
+resource "helm_release" "argocd" {
+  name       = "argocd"
+  namespace  = var.namespace
+  chart      = "${path.module}/argo-cd"
+  wait       = false
+
+  values = [
+    <<-EOT
+    configs:
+      credentialTemplates:
+        https-creds:
+          url: ${var.workload_git_repo}
+          password: ${var.github_pat}
+          username: ${var.github_user}
+    repositories:
+      private-repo:
+        url: ${var.workload_git_repo}
+    server:
+      extraArgs:
+        - --insecure
+EOT
+  ]
+
+  lifecycle {
+    ignore_changes = [
+      values,
+      version
+    ]
+  }
+  provisioner "local-exec" {
+    command = "echo 'Sleeping for 20 seconds after ArgoCD installation...' && sleep 20 && echo 'Sleep completed'"
+  }
+}
+
+/*
+resource "kubernetes_manifest" "argocd_ingressroute" {
+  manifest = {
+    apiVersion = "traefik.io/v1alpha1"
+    kind       = "IngressRoute"
+    metadata = {
+      name      = "argocd-ingressroute"
+      namespace = var.namespace
+    }
+    spec = {
+      entryPoints = ["websecure"]
+      routes = [
+        {
+          kind  = "Rule"
+          match = "Host(`argo.${var.cluster_name}.${var.hosted_zone}`)"
+          services = [
+            {
+              name      = "argocd-server"
+              kind      = "Service"
+              namespace = var.namespace
+              port      = 80
+            }
+          ]
+        }
+      ]
+      tls = {
+        certResolver = "le"
+      }
+    }
+  }
+
+  depends_on = [helm_release.argocd]
+}
+
+
+locals {
+  applications = {
+    frontend = ["dev", "test", "prod"],
+    backend  = ["dev", "test", "prod"]
+  }
+}
+
+resource "kubernetes_manifest" "argocd_applications" {
+  for_each = {
+    for pair in flatten([
+      for app, envs in local.applications : [
+        for env in envs : {
+          key = "${app}-${env}"
+          value = {
+            app = app
+            env = env
+          }
+        }
+      ]
+    ]) : pair.key => pair.value
+  }
+
+  manifest = {
+    apiVersion = "argoproj.io/v1alpha1"
+    kind       = "Application"
+    metadata = {
+      name      = each.key
+      namespace = "devops"
+    }
+    spec = {
+      project = "default"
+      source = {
+        repoURL        = "https://github.com/cvp-challenges/practice-river-devops.git"
+        targetRevision = "HEAD"
+        path           = "${each.value.app}/envs/${each.value.env}"
+      }
+      destination = {
+        server    = "https://kubernetes.default.svc"
+        namespace =  "${each.value.env}"
+      }
+      syncPolicy = {
+        automated = {
+          selfHeal = true
+          prune    = true
+        }
+      }
+    }
+  }
+
+  depends_on = [helm_release.argocd]
+}
+
+*/
+resource "kubernetes_manifest" "google_api_key_external_secret" {
+  manifest = {
+    apiVersion = "external-secrets.io/v1beta1"
+    kind       = "ExternalSecret"
+    metadata = {
+      name      = "google-api-key-external-secrets"
+      namespace = "devops"
+    }
+    spec = {
+      data = [
+        {
+          remoteRef = {
+            key      = "river-secrets"
+            property = "google-api-key"
+          }
+          secretKey = "text"
+        }
+      ]
+      refreshInterval = "1h"
+      secretStoreRef = {
+        kind = "SecretStore"
+        name = "external-secrets-store"
+      }
+      target = {
+        name = "google-api-key"
+      }
+    }
+  }
+}
+
+resource "kubernetes_manifest" "google_tag_mgr_key_external_secret" {
+  manifest = {
+    apiVersion = "external-secrets.io/v1beta1"
+    kind       = "ExternalSecret"
+    metadata = {
+      name      = "google-tag-mgr-key-external-secrets"
+      namespace = "devops"
+    }
+    spec = {
+      data = [
+        {
+          remoteRef = {
+            key      = "river-secrets"
+            property = "google-tag-mgr-key"
+          }
+          secretKey = "text"
+        }
+      ]
+      refreshInterval = "1h"
+      secretStoreRef = {
+        kind = "SecretStore"
+        name = "external-secrets-store"
+      }
+      target = {
+        name = "google-tag-mgr-key"
+      }
+    }
+  }
+}
+

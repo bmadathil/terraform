@@ -1,0 +1,25 @@
+const applicationConfig = {
+    kafka: {
+        clusters: [
+            {
+                name: 'yaml',
+                bootstrapServers: 'kafka:9092',
+            },
+        ],
+    },
+    spring: {
+        security: {
+            oauth2: {},
+        },
+    },
+    auth: {
+        type: 'disabled',
+    },
+    management: {
+        health: {
+            ldap: {
+                enabled: false,
+            },
+        },
+    },
+};

@@ -1,0 +1,30 @@
+# ----------------------------------------
+#  Mandatory Stacks Start ( Do not disable these stacks)
+# ----------------------------------------
+identity
+infra
+karpentercrd
+karpenter
+namespace
+ebscsi
+storageclasses
+reflector
+externalsecretscrd
+externalsecrets
+dockerconfig
+eksaddons
+# ----------------------------------------
+#  Mandatory Stacks End 
+# ----------------------------------------
+traefikdeploy
+traefikresources
+postgres
+pgadmin
+keycloak
+jenkins
+sonarqube
+jenkinseed
+argocd
+argoapp
+smtp
+kafka

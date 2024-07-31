@@ -1,0 +1,3 @@
+name: hopper-workloads-046-pgadmin
+description: Deploys the named workload to EKS.
+runtime: nodejs

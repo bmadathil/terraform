@@ -1,0 +1,3 @@
+name: hopper-workloads-009-eks-addons
+description: Deploys the named workload to EKS.
+runtime: nodejs

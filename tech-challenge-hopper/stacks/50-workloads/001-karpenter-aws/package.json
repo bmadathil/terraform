@@ -1,0 +1,12 @@
+{
+    "name": "hopper-workloads-001-karpenter-aws",
+    "devDependencies": {
+        "@types/node": "20.8.7",
+        "typescript": "5.2.2"
+    },
+    "dependencies": {
+        "@pulumi/aws": "6.6.0",
+        "@pulumi/kubernetes": "4.4.0",
+        "@pulumi/pulumi": "3.89.0"
+    }
+}

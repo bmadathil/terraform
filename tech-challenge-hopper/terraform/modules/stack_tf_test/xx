@@ -1,0 +1,160 @@
+# Provider configuration
+provider "aws" {
+  region = "us-west-2"  # Replace with your desired region
+}
+
+provider "kubernetes" {
+  # Configuration for your Kubernetes cluster
+}
+
+provider "helm" {
+  kubernetes {
+    # Configuration for your Kubernetes cluster
+  }
+}
+
+# Variables
+variable "route53_zone_id" {
+  description = "The Route 53 Hosted Zone ID for example.com"
+  type        = string
+}
+
+# ACM Certificate
+resource "aws_acm_certificate" "wildcard" {
+  domain_name       = "*.example.com"
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_route53_record" "cert_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.wildcard.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  }
+
+  allow_overwrite = true
+  name            = each.value.name
+  records         = [each.value.record]
+  ttl             = 60
+  type            = each.value.type
+  zone_id         = var.route53_zone_id
+}
+
+resource "aws_acm_certificate_validation" "cert" {
+  certificate_arn         = aws_acm_certificate.wildcard.arn
+  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
+}
+
+resource "helm_release" "traefik" {
+  name       = local.TRAEFIK
+  namespace  = local.TRAEFIK
+  chart      = "${path.module}/traefik"
+
+  values = [
+    yamlencode({
+      image = {
+        tag = "v3.0.0-beta5"
+      }
+      serviceAccountAnnotations = {
+        "eks.amazonaws.com/role-arn" = local.traefik_role_arn
+      }
+      service = {
+        annotations = {
+          "service.beta.kubernetes.io/aws-load-balancer-type"   = "nlb"
+          "service.beta.kubernetes.io/aws-load-balancer-scheme" = "internet-facing"
+        }
+      }
+      ports = {
+        web = {
+          port = 80
+        }
+        websecure = {
+          port = 443
+        }
+      }
+      additionalArguments = [
+        "--providers.kubernetesingress.ingressclass=traefik-internal"
+      ]
+    })
+  ]
+}
+
+
+# Get Traefik service details
+data "kubernetes_service" "traefik" {
+  metadata {
+    name      = "traefik"
+    namespace = "traefik"
+  }
+
+  depends_on = [helm_release.traefik]
+}
+
+# Get NLB details
+data "aws_lb" "traefik" {
+  name = split("-", split(".", data.kubernetes_service.traefik.status.0.load_balancer.0.ingress.0.hostname).0).0
+
+  depends_on = [data.kubernetes_service.traefik]
+}
+
+# Create NLB listener
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = data.aws_lb.traefik.arn
+  port              = 8443
+  protocol          = "TLS"
+  ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
+  certificate_arn   = aws_acm_certificate.wildcard.arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.traefik.arn
+  }
+}
+
+# Create target group for Traefik
+resource "aws_lb_target_group" "traefik" {
+  name        = "traefik-tg"
+  port        = 8443
+  protocol    = "TCP"
+  vpc_id      = data.aws_lb.traefik.vpc_id
+  target_type = "ip"
+
+  health_check {
+    protocol = "TCP"
+    port     = 8443
+  }
+}
+
+# Attach target group to NLB
+resource "aws_lb_target_group_attachment" "traefik" {
+  count            = length(data.kubernetes_service.traefik.status.0.load_balancer.0.ingress)
+  target_group_arn = aws_lb_target_group.traefik.arn
+  target_id        = data.kubernetes_service.traefik.status.0.load_balancer.0.ingress[count.index].ip
+  port             = 8443
+}
+
+# Create wildcard CNAME record
+resource "aws_route53_record" "wildcard" {
+  zone_id = var.route53_zone_id
+  name    = "*.example.com"
+  type    = "CNAME"
+  ttl     = "300"
+  records = [data.aws_lb.traefik.dns_name]
+}
+
+# Outputs
+output "load_balancer_dns" {
+  value       = data.aws_lb.traefik.dns_name
+  description = "The DNS name of the Network Load Balancer"
+}
+You'll have a wildcard SSL certificate for *.example.com
+Traefik will be deployed with a Network Load Balancer
+An HTTPS listener will be added to the load balancer using your wildcard certificate
+A wildcard CNAME record (*.example.com) will point to your load balancer
+Traefik will be configured to route requests for *.example.com to the specified service

@@ -1,0 +1,6 @@
+name: hopper-aws-services
+description: Creates managed AWS services.
+runtime:
+  name: nodejs
+  options:
+    nodeargs: "--loader ts-node/esm --no-warnings"

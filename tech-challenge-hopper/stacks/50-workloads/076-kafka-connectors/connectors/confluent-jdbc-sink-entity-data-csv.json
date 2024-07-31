@@ -1,0 +1,21 @@
+{
+  "tasks.max": "1",
+  "topics": "entity-data-csv",
+  "config.providers": "env",
+  "config.providers.env.class": "org.apache.kafka.common.config.provider.EnvVarConfigProvider",
+  "connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",
+  "connection.url": "jdbc:postgresql://postgres:5432/postgres",
+  "connection.user": "${env:APP_DB_USER}",
+  "connection.password": "${env:APP_DB_PASSWORD}",
+  "insert.mode": "insert",
+  "auto.create": true,
+  "auto.evolve": true,
+  "table.name.format": "app.entity_data",
+  "transforms": "convertDOB,renameField",
+  "transforms.convertDOB.type": "org.apache.kafka.connect.transforms.TimestampConverter$Value",
+  "transforms.convertDOB.field": "dob",
+  "transforms.convertDOB.format": "YYYY-MM-DD",
+  "transforms.convertDOB.target.type": "Date",
+  "transforms.renameField.type": "org.apache.kafka.connect.transforms.ReplaceField$Value",
+  "transforms.renameField.renames": "firstname:first_name,lastname:last_name"
+}

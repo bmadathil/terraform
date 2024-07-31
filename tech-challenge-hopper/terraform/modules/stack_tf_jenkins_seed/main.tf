@@ -1,0 +1,351 @@
+
+provider "kubernetes" {
+  config_path = var.kubeconfig
+} 
+
+provider "helm" {
+  kubernetes {
+    config_path = var.kubeconfig
+  }
+}
+  
+provider "aws" { 
+  region = var.region
+}   
+
+data "aws_caller_identity" "current" {}
+
+
+data "kubernetes_secret" "sonarqube_admin_credentials" {
+  metadata {
+    name      = "sonarqube-admin-credentials"
+    namespace = "devops"
+  }
+
+}
+
+locals {
+  sonarqube_admin_username = data.kubernetes_secret.sonarqube_admin_credentials.data["sonarqube-username"]
+  sonarqube_admin_password = data.kubernetes_secret.sonarqube_admin_credentials.data["sonarqube-password"]
+}
+
+
+data "kubernetes_secret" "sonarqube_jenkins_credentials" {
+  metadata {
+    name      = "sonarqube-jenkins-credentials"
+    namespace = "devops"
+  }
+
+}
+
+locals {
+  sonarqube_jenkins_username = data.kubernetes_secret.sonarqube_jenkins_credentials.data["username"]
+  sonarqube_jenkins_password = data.kubernetes_secret.sonarqube_jenkins_credentials.data["password"]
+}
+
+resource "kubernetes_job" "create_sonarqube_jenkins_webhook" {
+  metadata {
+    name      = "create-sonarqube-jenkins-webhook"
+    namespace = var.namespace
+  }
+
+  spec {
+    backoff_limit = 5
+    template {
+      metadata {}
+      spec {
+        container {
+          name  = "curl-jq"
+          image = "softonic/curl-jq:3.18.3"
+
+          command = [
+            "curl", "-v",
+            "-u", "${local.sonarqube_admin_username}:${local.sonarqube_admin_password}",
+            "--data-urlencode", "name=Jenkins",
+            "--data-urlencode", "url=http://jenkins-release.${var.namespace}.svc.cluster.local:8080/sonarqube-webhook/",
+            "http://sonarqube.${var.namespace}.svc.cluster.local:9000/api/webhooks/create"
+          ]
+        }
+        restart_policy = "Never"
+      }
+    }
+  }
+
+  wait_for_completion = false
+
+  timeouts {
+    create = "10m"
+  }
+  depends_on = [
+    data.kubernetes_secret.sonarqube_admin_credentials
+  ]
+}
+
+resource "kubernetes_job" "create_jenkins_user" {
+  metadata {
+    name      = "create-sonarqube-jenkins-user"
+    namespace = var.namespace
+  }
+
+  spec {
+    backoff_limit = 5
+    template {
+      metadata {}
+      spec {
+        container {
+          name  = "curl-jq"
+          image = "softonic/curl-jq:3.18.3"
+
+          command = [
+            "curl", "-v",
+            "-u", "${local.sonarqube_admin_username}:${local.sonarqube_admin_password}",
+            "--data-urlencode", "login=${local.sonarqube_jenkins_username}",
+            "--data-urlencode", "password=${local.sonarqube_jenkins_password}",
+            "--data-urlencode", "name=Jenkins",
+            "http://sonarqube.${var.namespace}.svc.cluster.local:9000/api/users/create"
+          ]
+        }
+        restart_policy = "Never"
+      }
+    }
+  }
+
+  wait_for_completion = false
+
+  timeouts {
+    create = "10m"
+  }
+
+  depends_on = [
+    data.kubernetes_secret.sonarqube_jenkins_credentials,
+    data.kubernetes_secret.sonarqube_admin_credentials
+  ]
+}
+
+
+resource "kubernetes_job" "create_sonarqube_jenkins_token" {
+  metadata {
+    name      = "create-sonarqube-jenkins-token"
+    namespace = "devops"
+  }
+
+  spec {
+    backoff_limit = 5
+    template {
+      metadata {}
+      spec {
+        container {
+          name  = "curl-jq"
+          image = "softonic/curl-jq:3.18.3"
+
+          command = [
+            "/bin/sh", "-c",
+            <<-EOT
+            echo "Checking SonarQube availability..."
+            if ! curl -s -o /dev/null -w "%%{http_code}" http://sonarqube.devops.svc.cluster.local:9000/api/system/status | grep -q "200"; then
+              echo "SonarQube is not available. Exiting."
+              exit 1
+            fi
+
+            echo "SonarQube is available. Checking for existing token..."
+            EXISTING_TOKEN=$(curl -s -u "${local.sonarqube_jenkins_username}:${local.sonarqube_jenkins_password}" http://sonarqube.devops.svc.cluster.local:9000/api/user_tokens/search | jq -r '.userTokens[] | select(.name == "jenkins-token") | .name')
+
+            if [ "$EXISTING_TOKEN" = "jenkins-token" ]; then
+              echo "Existing token found. Revoking..."
+              REVOKE_RESPONSE=$(curl -s -w "\n%%{http_code}" -u "${local.sonarqube_jenkins_username}:${local.sonarqube_jenkins_password}" -X POST http://sonarqube.devops.svc.cluster.local:9000/api/user_tokens/revoke --data "name=jenkins-token")
+              REVOKE_STATUS=$(echo "$REVOKE_RESPONSE" | tail -n1)
+              if [ "$REVOKE_STATUS" != "204" ]; then
+                echo "Failed to revoke existing token. Exiting."
+                exit 1
+              fi
+              echo "Existing token revoked successfully."
+            fi
+
+            echo "Generating new token..."
+            RESPONSE=$(curl -s -w "\n%%{http_code}" -u "${local.sonarqube_jenkins_username}:${local.sonarqube_jenkins_password}" -X POST http://sonarqube.devops.svc.cluster.local:9000/api/user_tokens/generate --data "name=jenkins-token")
+            HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
+            BODY=$(echo "$RESPONSE" | sed '$d')
+
+            echo "HTTP Status: $HTTP_STATUS"
+            echo "Response body: $BODY"
+
+            if [ "$HTTP_STATUS" = "200" ]; then
+              TOKEN=$(echo "$BODY" | jq -r '.token')
+              if [ -n "$TOKEN" ] && [ "$TOKEN" != "null" ]; then
+                echo "Token generated successfully: $TOKEN"
+              else
+                echo "Failed to extract token from response."
+                exit 1
+              fi
+            else
+              echo "Failed to generate token. Exiting."
+              exit 1
+            fi
+            EOT
+          ]
+        }
+        restart_policy = "Never"
+      }
+    }
+  }
+
+  wait_for_completion = true
+
+  timeouts {
+    create = "10m"
+  }
+
+  depends_on = [
+    data.kubernetes_secret.sonarqube_jenkins_credentials
+  ]
+}
+
+resource "null_resource" "fetch_sonarqube_jenkins_token" {
+  triggers = {
+    job_name = kubernetes_job.create_sonarqube_jenkins_token.metadata[0].name
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      TOKEN=$(kubectl -n ${var.namespace} get pods --selector=job-name=${kubernetes_job.create_sonarqube_jenkins_token.metadata[0].name} -o jsonpath='{.items[0].metadata.name}' | xargs kubectl -n ${var.namespace} logs)
+      echo "SONARQUBE_TOKEN=$TOKEN" >> ${path.module}/token.env
+    EOT
+  }
+
+  depends_on = [
+    kubernetes_job.create_sonarqube_jenkins_token
+  ]
+}
+
+data "external" "sonarqube_jenkins_token" {
+  program = ["bash", "-c", <<EOT
+    set -e
+    POD_NAME=$(kubectl -n ${var.namespace} get pods --selector=job-name=${kubernetes_job.create_sonarqube_jenkins_token.metadata[0].name} -o jsonpath='{.items[0].metadata.name}')
+    LOGS=$(kubectl -n ${var.namespace} logs $POD_NAME)
+    TOKEN=$(echo "$LOGS" | grep -oP 'Token generated successfully: \K.*' | tr -d '\n')
+    if [ -z "$TOKEN" ]; then
+      echo '{"error": "Token not found in logs"}' >&2
+      exit 1
+    fi
+    echo "{\"token\": \"$TOKEN\"}"
+  EOT
+  ]
+
+  depends_on = [
+    kubernetes_job.create_sonarqube_jenkins_token
+  ]
+}
+
+resource "kubernetes_secret" "sonarqube_jenkins_token" {
+  metadata {
+    name      = "sonarqube-jenkins-token"
+    namespace = var.namespace
+    annotations = {
+      "jenkins.io/credentials-description" = "Token used to access SonarQube within pipelines."
+    }
+    labels = {
+      "jenkins.io/credentials-type" = "secretText"
+    }
+  }
+
+  type = "Opaque"
+
+  data = {
+    text = data.external.sonarqube_jenkins_token.result.token
+  }
+
+  depends_on = [data.external.sonarqube_jenkins_token]
+}
+
+
+output "sonarqube_jenkins_token_job_name" {
+  value = kubernetes_job.create_sonarqube_jenkins_token.metadata[0].name
+}
+
+
+resource "kubernetes_job" "trigger_jenkins_seed_job" {
+  metadata {
+    name      = "trigger-jenkins-seed-job"
+    namespace = "devops"
+  }
+
+  spec {
+    backoff_limit = 10
+    template {
+      metadata {}
+      spec {
+        container {
+          name    = "trigger-jenkins-seed-job"
+          image   = "curlimages/curl"
+          command = ["/bin/sh"]
+          args    = [
+            "-c",
+            <<-EOT
+              set -ex  # Enable command echo and exit on error
+
+              # Test connectivity
+              nc -zv jenkins-release.devops.svc.cluster.local 8080 || { echo "Cannot connect to Jenkins"; exit 1; }
+
+              echo "Trying to get crumb..."
+              CRUMB=$(curl -s --fail --user $USERNAME:$PASSWORD --cookie-jar /tmp/cookies 'http://jenkins-release.devops.svc.cluster.local:8080/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)')
+              echo "Got a crumb ($CRUMB)."
+
+              echo "Trying to generate token..."
+              TOKEN_RESPONSE=$(curl -s --fail --user $USERNAME:$PASSWORD --header "$CRUMB" \
+                --cookie /tmp/cookies 'http://jenkins-release.devops.svc.cluster.local:8080/me/descriptorByName/jenkins.security.ApiTokenProperty/generateNewToken' \
+                --data 'newTokenName=AdminToken')
+              
+              TOKEN=$(echo $TOKEN_RESPONSE | grep -o '"tokenValue":"[^"]*' | sed 's/"tokenValue":"//')
+              
+              if [ -z "$TOKEN" ]; then
+                echo "Failed to extract token. Full response:"
+                echo "$TOKEN_RESPONSE"
+                exit 1
+              fi
+
+              echo "Made a token ($${TOKEN:0:5}...)"  # Print first 5 characters for security
+
+              echo "Trying to trigger job..."
+              TRIGGER_RESPONSE=$(curl -s -w "\n%%{http_code}" -o /tmp/output.txt -X POST --user $USERNAME:$TOKEN --header "$CRUMB" http://jenkins-release.devops.svc.cluster.local:8080/job/seeder/build)
+              
+              HTTP_STATUS=$(echo "$TRIGGER_RESPONSE" | tail -n1)
+              BODY=$(cat /tmp/output.txt)
+
+              if [ "$HTTP_STATUS" = "201" ]; then
+                echo "Job triggered successfully."
+              else
+                echo "Failed to trigger job. Status code: $HTTP_STATUS"
+                echo "Response body: $BODY"
+                exit 1
+              fi
+            EOT
+          ]
+
+          env {
+            name = "USERNAME"
+            value_from {
+              secret_key_ref {
+                name = "jenkins-admin-credentials"
+                key  = "username"
+              }
+            }
+          }
+
+          env {
+            name = "PASSWORD"
+            value_from {
+              secret_key_ref {
+                name = "jenkins-admin-credentials"
+                key  = "password"
+              }
+            }
+          }
+        }
+
+        restart_policy = "Never"
+      }
+    }
+  }
+}
+
+

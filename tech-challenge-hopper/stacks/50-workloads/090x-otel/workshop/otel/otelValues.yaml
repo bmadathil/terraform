@@ -1,0 +1,8 @@
+global: {
+  storageClass: gp2-resizable,
+  cloud: aws,
+},    
+
+clickhouse: {
+  installCustomStorageClass: true,
+},

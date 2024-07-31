@@ -1,0 +1,3 @@
+name: hopper-workloads-075-kafka
+description: Deploys the named workload to EKS.
+runtime: nodejs

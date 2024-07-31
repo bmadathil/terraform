@@ -1,0 +1,3 @@
+name: hopper-workloads-005-storage-classes
+description: Deploys the named workload to EKS.
+runtime: nodejs

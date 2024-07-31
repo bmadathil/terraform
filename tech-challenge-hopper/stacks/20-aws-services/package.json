@@ -1,0 +1,23 @@
+{
+    "name": "hopper-aws-services",
+    "type": "module",
+    "devDependencies": {
+        "@types/node": "latest"
+    },
+    "peerDependencies": {
+        "@pulumi/pulumi": "3.89.0"
+    },
+    "dependencies": {
+        "@pulumi/aws": "6.6.0",
+        "@pulumi/awsx": "latest",
+        "@pulumi/eks": "latest",
+        "@pulumi/pulumi": "3.89.0",
+        "@pulumi/random": "4.14.0",
+        "ts-node": "latest",
+        "typescript": "latest"
+    },
+    "resolutions": {
+        "ts-node": "latest",
+        "typescript": "latest"
+    }
+}

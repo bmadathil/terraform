@@ -1,0 +1,162 @@
+provider "kubernetes" {
+  config_path = "/tmp/kubeconfig"
+}
+
+provider "helm" {
+  kubernetes {
+    config_path = "/tmp/kubeconfig"
+  }
+}
+
+provider "aws" {
+  region = "us-east-1"
+}
+
+data "aws_caller_identity" "current" {}
+
+
+
+
+resource "aws_acm_certificate" "wildcard" {
+  domain_name       = "*.tfriver.sandbox.cvpcorp.io "
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_route53_record" "validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.wildcard.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  }
+
+  zone_id = "YOUR_ROUTE53_ZONE_ID"
+  name    = each.value.name
+  type    = each.value.type
+  ttl     = 60
+  records = [each.value.record]
+}
+
+resource "aws_acm_certificate_validation" "wildcard" {
+  certificate_arn         = aws_acm_certificate.wildcard.arn
+  validation_record_fqdns = [for record in aws_route53_record.validation : record.fqdn]
+}
+
+resource "aws_lb" "nlb" {
+  name               = "example-nlb"
+  internal           = false
+  load_balancer_type = "network"
+
+  subnet_mappings {
+    subnet_id = "subnet-12345678"
+  }
+
+  enable_deletion_protection = false
+
+  tags = {
+    Name = "example-nlb"
+  }
+}
+
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.nlb.arn
+  port              = "443"
+  protocol          = "HTTPS"
+
+  ssl_policy = "ELBSecurityPolicy-TLS-1-2-2017-01"
+  certificate_arn = aws_acm_certificate_validation.wildcard.certificate_arn
+
+  default_action {
+    type = "forward"
+    target_group_arn = aws_lb_target_group.example.arn
+  }
+}
+
+resource "aws_lb_target_group" "example" {
+  name     = "example-tg"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "vpc-12345678"
+}
+
+
+
+
+/*
+locals {
+  TRAEFIK = "traefik"
+  traefik_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/eks-traefik-controller"
+}
+
+resource "helm_release" "traefik" {
+  name       = local.TRAEFIK
+  namespace  = local.TRAEFIK
+  chart      = "${path.module}/traefik"
+
+  values = [
+    yamlencode({
+      image = {
+        tag = "v3.0.0-beta5"
+      }
+      deployment = {
+        initContainers = [
+          {
+            name  = "volume-permissions"
+            image = "busybox:latest"
+            command = [
+              "sh",
+              "-c",
+              "chmod -Rv 600 /data/* && chown 65532:65532 /data"
+            ]
+            securityContext = {
+              runAsNonRoot = false
+              runAsGroup   = 0
+              runAsUser    = 0
+            }
+            volumeMounts = [
+              {
+                name      = "data"
+                mountPath = "/data"
+              }
+            ]
+          }
+        ]
+      }
+      persistence = {
+        enabled    = true
+        name       = "data"
+        accessMode = "ReadWriteOnce"
+        size       = "128Mi"
+        path       = "/data"
+      }
+      serviceAccountAnnotations = {
+        "eks.amazonaws.com/role-arn" = local.traefik_role_arn
+      }
+      service = {
+        annotations = {
+          "service.beta.kubernetes.io/aws-load-balancer-type"            = "nlb"
+          "service.beta.kubernetes.io/aws-load-balancer-scheme"          = "internet-facing"
+          "service.beta.kubernetes.io/aws-load-balancer-ssl-cert"        = var.acm_certificate_arn
+          "service.beta.kubernetes.io/aws-load-balancer-ssl-ports"       = "443"
+          "service.beta.kubernetes.io/aws-load-balancer-ssl-negotiation-policy" = "ELBSecurityPolicy-TLS-1-2-2017-01"
+        }
+      }
+      ports = {
+        web = {
+          redirectTo = "websecure"
+        }
+        websecure = {
+          tls = {
+            enabled = true
+          }
+        }
+      }
+    })
+  ]
+}
+*/

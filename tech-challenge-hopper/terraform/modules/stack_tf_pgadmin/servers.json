@@ -1,0 +1,4 @@
+{
+  "Servers": {"1":{"Group":"Servers","Host":"postgres.dev.svc.cluster.local","MaintenanceDB":"postgres","Name":"dev","PassFile":"/var/lib/pgadmin/pgpassfile","Port":5432,"SSLMode":"prefer","Username":"postgres"},"2":{"Group":"Servers","Host":"postgres.test.svc.cluster.local","MaintenanceDB":"postgres","Name":"test","PassFile":"/var/lib/pgadmin/pgpassfile","Port":5432,"SSLMode":"prefer","Username":"postgres"},"3":{"Group":"Servers","Host":"postgres.prod.svc.cluster.local","MaintenanceDB":"postgres","Name":"prod","PassFile":"/var/lib/pgadmin/pgpassfile","Port":5432,"SSLMode":"prefer","Username":"postgres"}}
+}
+

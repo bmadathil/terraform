@@ -1,0 +1,3 @@
+name: hopper-workloads-008-dockerconfig
+description: Creates dockerconfig entries for each environment namespace.
+runtime: nodejs

@@ -1,0 +1,3 @@
+name: hopper-workloads-050-keycloak
+description: Deploys the named workload to EKS.
+runtime: nodejs

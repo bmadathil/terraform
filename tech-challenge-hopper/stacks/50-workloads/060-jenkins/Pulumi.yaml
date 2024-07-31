@@ -1,0 +1,3 @@
+name: hopper-workloads-060-jenkins
+description: Deploys the named workload to EKS.
+runtime: nodejs

@@ -1,0 +1,23 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "acm:DescribeCertificate",
+                "acm:ListCertificates",
+                "acm:GetCertificate",
+                "elb:CreateLoadBalancer",
+                "elb:DescribeLoadBalancers",
+                "elb:DeleteLoadBalancer",
+                "elbv2:CreateTargetGroup",
+                "elbv2:CreateListener",
+                "elbv2:DescribeTargetGroups",
+                "elbv2:DescribeListeners",
+                "elbv2:DeleteTargetGroup",
+                "elbv2:DeleteListener"
+            ],
+            "Resource": "*"
+        }
+    ]
+}

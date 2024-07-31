@@ -1,0 +1,18 @@
+# DO NOT COMMIT SECRETS TO THE REPO
+# copy this file to "env-vars" and fill in the values locally
+K8S_VERSION=1.29
+PULUMI_DEBUG=true
+GITHUB_USER=username
+GITHUB_USER_PAT=pat_token
+PULUMI_CONFIG_PASSPHRASE=arbitrary_passphrase
+AWS_ACCESS_KEY_ID=some_key
+AWS_SECRET_ACCESS_KEY=some_key
+AWS_DEFAULT_REGION=us-east-1
+CLUSTER_NAME=cluster_name
+CLUSTER_DOMAIN=cluster_name.cluster
+KUBECONFIG=/hopper/runtime/kubeconfig
+TEAMS_CHANNEL_URL=https://teams.ms.com/
+SEED_JOB_REPO_URL=https://github.com/CVPcorp/hopper.git
+CERTIFICATE_SERVER_URL=https://acme-v02.api.letsencrypt.org/directory
+CLUSTER_CONFIG_PATH=cluster-configs/cluster_name.json
+# CLUSTER_CONFIG_URL=https://k8s-cluster-configs.s3.amazonaws.com/cluster_name.json

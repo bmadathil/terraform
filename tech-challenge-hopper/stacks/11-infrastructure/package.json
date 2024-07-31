@@ -1,0 +1,21 @@
+{
+    "name": "hopper-infrastructure",
+    "type": "module",
+    "devDependencies": {
+        "@types/node": "latest"
+    },
+    "peerDependencies": {
+        "@pulumi/pulumi": "latest"
+    },
+    "dependencies": {
+        "@pulumi/aws": "^5.13.0",
+        "@pulumi/awsx": "latest",
+        "@pulumi/pulumi": "latest",
+        "ts-node": "^10.4.0",
+        "typescript": "^4.5.4"
+    },
+    "resolutions": {
+        "ts-node": "^10.4.0",
+        "typescript": "^4.5.4"
+    }
+}

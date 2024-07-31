@@ -1,0 +1,365 @@
+
+provider "kubernetes" {
+  config_path = var.kubeconfig
+} 
+
+provider "helm" {
+  kubernetes {
+    config_path = var.kubeconfig
+  }
+}
+  
+provider "aws" { 
+  region = var.region
+}   
+
+data "aws_caller_identity" "current" {}
+
+resource "kubernetes_manifest" "sonarqube_admin_credentials_external_secret" {
+  manifest = {
+    apiVersion = "external-secrets.io/v1beta1"
+    kind       = "ExternalSecret"
+    metadata = {
+      name      = "sonarqube-admin-credentials-external-secrets"
+      namespace = "devops"
+    }
+    spec = {
+      data = [
+        {
+          remoteRef = {
+            key      = "river-secrets"
+            property = "sonarqube-username"
+          }
+          secretKey = "sonarqube-username"
+        },
+        {
+          remoteRef = {
+            key      = "river-secrets"
+            property = "sonarqube-password"
+          }
+          secretKey = "sonarqube-password"
+        }
+      ]
+      refreshInterval = "1h"
+      secretStoreRef = {
+        kind = "SecretStore"
+        name = "external-secrets-store"
+      }
+      target = {
+        name = "sonarqube-admin-credentials"
+      }
+    }
+  }
+}
+
+resource "kubernetes_manifest" "sonarqube_jenkins_credentials_external_secrets" {
+  manifest = {
+    apiVersion = "external-secrets.io/v1beta1"
+    kind       = "ExternalSecret"
+    metadata = {
+      name      = "sonarqube-jenkins-credentials-external-secrets"
+      namespace = "devops"
+    }
+    spec = {
+      data = [
+        {
+          remoteRef = {
+            key      = "river-secrets"
+            property = "sonarqube-jenkins-username"
+          }
+          secretKey = "username"
+        },
+        {
+          remoteRef = {
+            key      = "river-secrets"
+            property = "sonarqube-jenkins-password"
+          }
+          secretKey = "password"
+        }
+      ]
+      refreshInterval = "1h"
+      secretStoreRef = {
+        kind = "SecretStore"
+        name = "external-secrets-store"
+      }
+      target = {
+        name = "sonarqube-jenkins-credentials"
+      }
+    }
+  }
+}
+
+data "kubernetes_secret" "sonarqube_admin_credentials" {
+  metadata {
+    name      = "sonarqube-admin-credentials"
+    namespace = "devops"
+  }
+
+  depends_on = [kubernetes_manifest.sonarqube_admin_credentials_external_secret]
+}
+
+locals {
+  sonarqube_admin_username = data.kubernetes_secret.sonarqube_admin_credentials.data["sonarqube-username"]
+  sonarqube_admin_password = data.kubernetes_secret.sonarqube_admin_credentials.data["sonarqube-password"]
+}
+
+
+data "kubernetes_secret" "sonarqube_jenkins_credentials" {
+  metadata {
+    name      = "sonarqube-jenkins-credentials"
+    namespace = "devops"
+  }
+
+  depends_on = [kubernetes_manifest.sonarqube_jenkins_credentials_external_secrets]
+}
+
+locals {
+  sonarqube_jenkins_username = data.kubernetes_secret.sonarqube_jenkins_credentials.data["username"]
+  sonarqube_jenkins_password = data.kubernetes_secret.sonarqube_jenkins_credentials.data["password"]
+}
+
+resource "helm_release" "sonarqube" {
+  name       = "sonarqube"
+  namespace  = "devops"
+  chart      = "${path.module}/sonarqube"
+
+  values = [
+    jsonencode({
+      replicaCount     = 1
+      sonarqubeUsername = local.sonarqube_admin_username
+      sonarqubePassword = local.sonarqube_admin_password
+      existingSecret   = "sonarqube-admin-credentials"
+      persistence      = {
+        enabled = true
+      }
+      service          = {
+        type  = "ClusterIP"
+        ports = {
+          http = 9000
+        }
+      }
+      postgresql = {
+        enabled = false
+      }
+      externalDatabase = {
+        port                    = "5432"
+        host                    = "postgres-prod.prod.svc.cluster.local"
+        database                = "postgres"
+        existingSecret          = "postgres-db-credentials"
+        existingSecretUserKey   = "username"
+        existingSecretPasswordKey = "password"
+      }
+    })
+  ]
+
+  depends_on = [data.kubernetes_secret.sonarqube_admin_credentials,data.kubernetes_secret.sonarqube_jenkins_credentials] 
+}
+
+/*
+resource "kubernetes_manifest" "sonarqube_ingress_route" {
+  manifest = {
+    apiVersion = "traefik.io/v1alpha1"
+    kind       = "IngressRoute"
+    metadata = {
+      name      = "sonarqube-ingress"
+      namespace = "devops"
+    }
+    spec = {
+      entryPoints = ["websecure"]
+      routes = [
+        {
+          kind  = "Rule"
+          match = "Host(`sonarqube.${var.cluster_name}.${var.hosted_zone}`)"
+          services = [
+            {
+              kind      = "Service"
+              name      = "sonarqube"
+              namespace = "devops"
+              port      = 9000
+            }
+          ]
+        }
+      ]
+      tls = {
+        certResolver = "le"
+      }
+    }
+  }
+  depends_on = [
+    helm_release.sonarqube,
+  ]
+}
+
+*/
+resource "kubernetes_job" "create_sonarqube_jenkins_webhook" {
+  metadata {
+    name      = "create-sonarqube-jenkins-webhook"
+    namespace = var.namespace
+  }
+
+  spec {
+    backoff_limit = 5
+    template {
+      metadata {}
+      spec {
+        container {
+          name  = "curl-jq"
+          image = "softonic/curl-jq:3.18.3"
+
+          command = [
+            "curl", "-v",
+            "-u", "${local.sonarqube_admin_username}:${local.sonarqube_admin_password}",
+            "--data-urlencode", "name=Jenkins",
+            "--data-urlencode", "url=http://jenkins-release.${var.namespace}.svc.cluster.local:8080/sonarqube-webhook/",
+            "http://sonarqube.${var.namespace}.svc.cluster.local:9000/api/webhooks/create"
+          ]
+        }
+        restart_policy = "Never"
+      }
+    }
+  }
+
+  wait_for_completion = false
+
+  timeouts {
+    create = "10m"
+  }
+  depends_on = [
+    helm_release.sonarqube,
+    data.kubernetes_secret.sonarqube_admin_credentials
+  ]
+}
+
+resource "kubernetes_job" "create_jenkins_user" {
+  metadata {
+    name      = "create-sonarqube-jenkins-user"
+    namespace = var.namespace
+  }
+
+  spec {
+    backoff_limit = 5
+    template {
+      metadata {}
+      spec {
+        container {
+          name  = "curl-jq"
+          image = "softonic/curl-jq:3.18.3"
+
+          command = [
+            "curl", "-v",
+            "-u", "${local.sonarqube_admin_username}:${local.sonarqube_admin_password}",
+            "--data-urlencode", "login=${local.sonarqube_jenkins_username}",
+            "--data-urlencode", "password=${local.sonarqube_jenkins_password}",
+            "--data-urlencode", "name=Jenkins",
+            "http://sonarqube.${var.namespace}.svc.cluster.local:9000/api/users/create"
+          ]
+        }
+        restart_policy = "Never"
+      }
+    }
+  }
+
+  wait_for_completion = false
+
+  timeouts {
+    create = "10m"
+  }
+
+  depends_on = [
+    helm_release.sonarqube,
+    data.kubernetes_secret.sonarqube_jenkins_credentials,
+    data.kubernetes_secret.sonarqube_admin_credentials
+  ]
+}
+resource "kubernetes_job" "create_sonarqube_jenkins_token" {
+  metadata {
+    name      = "create-sonarqube-jenkins-token"
+    namespace = "devops"
+  }
+
+  spec {
+    backoff_limit = 5
+    template {
+      metadata {}
+      spec {
+        container {
+          name  = "curl-jq"
+          image = "softonic/curl-jq:3.18.3"
+
+          command = [
+            "/bin/sh", "-c",
+            //"echo $(curl -s -u ${local.sonarqube_jenkins_username}:${local.sonarqube_jenkins_password} --data-urlencode name=jenkins-token http://sonarqube.devops.svc.cluster.local:9000/api/user_tokens/generate | jq -r '.token')"
+            "echo $(curl -s -u jenkins:TM7ln7EM5Orxt1v79v6K --data-urlencode name=jenkins-token http://sonarqube.devops.svc.cluster.local:9000/api/user_tokens/generate | jq -r '.token')"
+          ]
+        }
+        restart_policy = "Never"
+      }
+    }
+  }
+
+  wait_for_completion = true
+
+  timeouts {
+    create = "10m"
+  }
+
+  depends_on = [
+    helm_release.sonarqube,
+  ]
+}
+
+resource "null_resource" "fetch_sonarqube_jenkins_token" {
+  triggers = {
+    job_name = kubernetes_job.create_sonarqube_jenkins_token.metadata[0].name
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      TOKEN=$(kubectl -n ${var.namespace} get pods --selector=job-name=${kubernetes_job.create_sonarqube_jenkins_token.metadata[0].name} -o jsonpath='{.items[0].metadata.name}' | xargs kubectl -n ${var.namespace} logs)
+      echo "SONARQUBE_TOKEN=$TOKEN" >> ${path.module}/token.env
+    EOT
+  }
+
+  depends_on = [
+    kubernetes_job.create_sonarqube_jenkins_token
+  ]
+}
+
+
+data "external" "sonarqube_jenkins_token" {
+  program = ["bash", "-c", <<EOT
+    TOKEN=$(kubectl -n ${var.namespace} get pods --selector=job-name=${kubernetes_job.create_sonarqube_jenkins_token.metadata[0].name} -o jsonpath='{.items[0].metadata.name}' | xargs kubectl -n ${var.namespace} logs)
+    echo "{\"token\": \"$TOKEN\"}"
+  EOT
+  ]
+
+  depends_on = [
+    kubernetes_job.create_sonarqube_jenkins_token
+  ]
+}
+resource "kubernetes_secret" "sonarqube_jenkins_token" {
+  metadata {
+    name      = "sonarqube-jenkins-token"
+    namespace = var.namespace
+    annotations = {
+      "jenkins.io/credentials-description" = "Token used to access SonarQube within pipelines."
+    }
+    labels = {
+      "jenkins.io/credentials-type" = "secretText"
+    }
+  }
+
+  type = "Opaque"
+
+  data = {
+    text = data.external.sonarqube_jenkins_token.result.token
+  }
+
+  depends_on = [data.external.sonarqube_jenkins_token]
+}
+
+
+output "sonarqube_jenkins_token_job_name" {
+  value = kubernetes_job.create_sonarqube_jenkins_token.metadata[0].name
+}
+

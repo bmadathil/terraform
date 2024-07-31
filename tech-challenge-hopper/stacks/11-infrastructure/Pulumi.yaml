@@ -1,0 +1,6 @@
+name: hopper-infrastructure
+description: Creates a managed infrastructure stack for an AWS EKS cluster.
+runtime:
+  name: nodejs
+  options:
+    nodeargs: "--loader ts-node/esm --no-warnings"

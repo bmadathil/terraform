@@ -1,0 +1,18 @@
+apiVersion: v2
+appVersion: 3.1.4
+description: A Helm chart for helm-smtp4dev
+icon: https://raw.githubusercontent.com/rnwood/smtp4dev/master/Rnwood.Smtp4dev/ClientApp/public/logo.png
+keywords:
+- smtp4dev
+- fake smtp email server
+- development
+maintainers:
+- name: IMIO
+  url: https://github.com/IMIO/
+name: smtp4dev
+sources:
+- https://github.com/imio/helm-charts
+- https://github.com/imio/helm-smtp4dev
+- https://github.com/rnwood/smtp4dev
+type: application
+version: 0.0.2

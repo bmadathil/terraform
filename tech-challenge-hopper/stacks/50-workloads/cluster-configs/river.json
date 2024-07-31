@@ -1,0 +1,1105 @@
+{
+  "name": "river",
+  "namespaces": [
+    {
+      "name": "traefik",
+      "workloads": [
+        {
+          "name": "traefik",
+          "host": "traefik.river.sandbox.cvpcorp.io",
+          "email": "river-traefik@cvpcorp.com",
+          "adminCredentials": {
+            "name": "traefik-credentials",
+            "type": "kubernetes.io/basic-auth",
+            "refreshInterval": "24h",
+            "data": [
+              {
+                "secretKey": "username",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "traefik-username"
+                }
+              },
+              {
+                "secretKey": "password",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "traefik-password"
+                }
+              }
+            ]
+          },
+          "hostedZones": [
+            {
+              "name": "sandbox.cvpcorp.io",
+              "records": [ "*.river" ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dev",
+      "workloads": [
+        {
+          "name": "postgres",
+          "adminCredentials": {
+            "name": "postgres-db-credentials",
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "username",
+                "remoteRef": {
+                  "key": "river-dev-secrets",
+                  "property": "postgres-db-username"
+                }
+              },
+              {
+                "secretKey": "password",
+                "remoteRef": {
+                  "key": "river-dev-secrets",
+                  "property": "postgres-db-password"
+                }
+              }
+            ]
+          },
+          "userCredentials": [
+            {
+              "name": "keycloak-db-credentials",
+              "refreshInterval": "1h",
+              "data": [
+                {
+                  "secretKey": "username",
+                  "remoteRef": {
+                    "key": "river-dev-secrets",
+                    "property": "keycloak-db-username"
+                  }
+                },
+                {
+                  "secretKey": "password",
+                  "remoteRef": {
+                    "key": "river-dev-secrets",
+                    "property": "keycloak-db-password"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "nextauth-db-credentials",
+              "refreshInterval": "1h",
+              "data": [
+                {
+                  "secretKey": "username",
+                  "remoteRef": {
+                    "key": "river-dev-secrets",
+                    "property": "nextauth-db-username"
+                  }
+                },
+                {
+                  "secretKey": "password",
+                  "remoteRef": {
+                    "key": "river-dev-secrets",
+                    "property": "nextauth-db-password"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "app-db-credentials",
+              "refreshInterval": "1h",
+              "data": [
+                {
+                  "secretKey": "username",
+                  "remoteRef": {
+                    "key": "river-dev-secrets",
+                    "property": "app-db-username"
+                  }
+                },
+                {
+                  "secretKey": "password",
+                  "remoteRef": {
+                    "key": "river-dev-secrets",
+                    "property": "app-db-password"
+                  }
+                }
+              ]
+            }
+          ],
+          "envFrom": [
+            {
+              "name": "APP_DB_USER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "app-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "APP_DB_PASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "app-db-credentials",
+                  "key": "password"
+                }
+              }
+            },
+            {
+              "name": "KEYCLOAK_DB_USER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "keycloak-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "KEYCLOAK_DB_PASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "keycloak-db-credentials",
+                  "key": "password"
+                }
+              }
+            },
+            {
+              "name": "NEXTAUTH_DB_USER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "nextauth-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "NEXTAUTH_DB_PASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "nextauth-db-credentials",
+                  "key": "password"
+                }
+              }
+            },
+            {
+              "name": "PGUSER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "postgres-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "PGPASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "postgres-db-credentials",
+                  "key": "password"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "replicas": 1,
+          "name": "keycloak",
+          "host": "dev.keycloak.river.sandbox.cvpcorp.io",
+          "realmImports": [ "river-tech-challenge-dev.json" ],
+          "db": {
+            "port": 5432,
+            "name": "postgres",
+            "user": "keycloak",
+            "host": "postgres.dev.svc.cluster.local",
+            "external": true,
+            "secret": {
+              "name": "keycloak-db-credentials",
+              "userKey": "username",
+              "passwordKey": "password"
+            }
+          },
+          "adminCredentials": {
+            "name": "keycloak-admin-credentials",
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "username",
+                "remoteRef": {
+                  "key": "river-dev-secrets",
+                  "property": "keycloak-admin-username"
+                }
+              },
+              {
+                "secretKey": "password",
+                "remoteRef": {
+                  "key": "river-dev-secrets",
+                  "property": "keycloak-admin-password"
+                }
+              }
+            ]
+          },
+          "clientSecrets": {
+            "name": "keycloak-client-secrets",
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "client-secret",
+                "remoteRef": {
+                  "key": "river-dev-secrets",
+                  "property": "client-secret"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "replicas": 1,
+          "name": "kafka",
+          "version": "7.6.1",
+          "host": "dev.kafka.river.sandbox.cvpcorp.io",
+          "connect": {
+            "imageTag": "ghcr.io/cvpcorp/kafka-connect:1.0.3",
+            "envFrom": [
+              {
+                "name": "AWS_ACCESS_KEY_ID",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "awssm-secret",
+                    "key": "access-key"
+                  }
+                }
+              },
+              {
+                "name": "AWS_SECRET_ACCESS_KEY",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "awssm-secret",
+                    "key": "secret-access-key"
+                  }
+                }
+              },
+              {
+                "name": "APP_DB_USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "app-db-credentials",
+                    "key": "username"
+                  }
+                }
+              },
+              {
+                "name": "APP_DB_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "app-db-credentials",
+                    "key": "password"
+                  }
+                }
+              }
+            ],
+            "connectors": [
+              {
+                "name": "streamthoughts-s3-source-entity-data-csv",
+                "substitutions": [
+                  { "key": "aws.s3.bucket.name", "value": "practice-river-tech-challenge-dev" }
+                ]
+              },
+              {
+                "name": "confluent-jdbc-sink-entity-data-csv",
+                "substitutions": []
+              }
+            ]
+          },
+          "adminCredentials": {
+            "name": "kafka-admin-credentials",
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "username",
+                "remoteRef": {
+                  "key": "river-dev-secrets",
+                  "property": "kafka-admin-username"
+                }
+              },
+              {
+                "secretKey": "password",
+                "remoteRef": {
+                  "key": "river-dev-secrets",
+                  "property": "kafka-admin-password"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "test",
+      "workloads": [
+        {
+          "name": "postgres",
+          "adminCredentials": {
+            "name": "postgres-db-credentials",
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "username",
+                "remoteRef": {
+                  "key": "river-test-secrets",
+                  "property": "postgres-db-username"
+                }
+              },
+              {
+                "secretKey": "password",
+                "remoteRef": {
+                  "key": "river-test-secrets",
+                  "property": "postgres-db-password"
+                }
+              }
+            ]
+          },
+          "userCredentials": [
+            {
+              "name": "keycloak-db-credentials",
+              "refreshInterval": "1h",
+              "data": [
+                {
+                  "secretKey": "username",
+                  "remoteRef": {
+                    "key": "river-test-secrets",
+                    "property": "keycloak-db-username"
+                  }
+                },
+                {
+                  "secretKey": "password",
+                  "remoteRef": {
+                    "key": "river-test-secrets",
+                    "property": "keycloak-db-password"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "nextauth-db-credentials",
+              "refreshInterval": "1h",
+              "data": [
+                {
+                  "secretKey": "username",
+                  "remoteRef": {
+                    "key": "river-test-secrets",
+                    "property": "nextauth-db-username"
+                  }
+                },
+                {
+                  "secretKey": "password",
+                  "remoteRef": {
+                    "key": "river-test-secrets",
+                    "property": "nextauth-db-password"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "app-db-credentials",
+              "refreshInterval": "1h",
+              "data": [
+                {
+                  "secretKey": "username",
+                  "remoteRef": {
+                    "key": "river-test-secrets",
+                    "property": "app-db-username"
+                  }
+                },
+                {
+                  "secretKey": "password",
+                  "remoteRef": {
+                    "key": "river-test-secrets",
+                    "property": "app-db-password"
+                  }
+                }
+              ]
+            }
+          ],
+          "envFrom": [
+            {
+              "name": "APP_DB_USER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "app-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "APP_DB_PASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "app-db-credentials",
+                  "key": "password"
+                }
+              }
+            },
+            {
+              "name": "KEYCLOAK_DB_USER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "keycloak-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "KEYCLOAK_DB_PASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "keycloak-db-credentials",
+                  "key": "password"
+                }
+              }
+            },
+            {
+              "name": "NEXTAUTH_DB_USER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "nextauth-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "NEXTAUTH_DB_PASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "nextauth-db-credentials",
+                  "key": "password"
+                }
+              }
+            },
+            {
+              "name": "PGUSER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "postgres-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "PGPASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "postgres-db-credentials",
+                  "key": "password"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "replicas": 2,
+          "name": "keycloak",
+          "host": "test.keycloak.river.sandbox.cvpcorp.io",
+          "realmImports": [ "river-tech-challenge-test.json" ],
+          "db": {
+            "port": 5432,
+            "name": "postgres",
+            "user": "keycloak",
+            "host": "postgres.test.svc.cluster.local",
+            "external": true,
+            "secret": {
+              "name": "keycloak-db-credentials",
+              "userKey": "username",
+              "passwordKey": "password"
+            }
+          },
+          "adminCredentials": {
+            "name": "keycloak-admin-credentials",
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "username",
+                "remoteRef": {
+                  "key": "river-test-secrets",
+                  "property": "keycloak-admin-username"
+                }
+              },
+              {
+                "secretKey": "password",
+                "remoteRef": {
+                  "key": "river-test-secrets",
+                  "property": "keycloak-admin-password"
+                }
+              }
+            ]
+          },
+          "clientSecrets": {
+            "name": "keycloak-client-secrets",
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "client-secret",
+                "remoteRef": {
+                  "key": "river-test-secrets",
+                  "property": "client-secret"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "replicas": 1,
+          "name": "kafka",
+          "version": "7.6.1",
+          "host": "test.kafka.river.sandbox.cvpcorp.io",
+          "connect": {
+            "imageTag": "ghcr.io/cvpcorp/kafka-connect:1.0.3",
+            "envFrom": [
+              {
+                "name": "AWS_ACCESS_KEY_ID",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "awssm-secret",
+                    "key": "access-key"
+                  }
+                }
+              },
+              {
+                "name": "AWS_SECRET_ACCESS_KEY",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "awssm-secret",
+                    "key": "secret-access-key"
+                  }
+                }
+              },
+              {
+                "name": "APP_DB_USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "app-db-credentials",
+                    "key": "username"
+                  }
+                }
+              },
+              {
+                "name": "APP_DB_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "app-db-credentials",
+                    "key": "password"
+                  }
+                }
+              }
+            ],
+            "connectors": [
+              {
+                "name": "streamthoughts-s3-source-entity-data-csv",
+                "substitutions": [
+                  { "key": "aws.s3.bucket.name", "value": "practice-river-tech-challenge-test" }
+                ]
+              },
+              {
+                "name": "confluent-jdbc-sink-entity-data-csv",
+                "substitutions": []
+              }
+            ]
+          },
+          "adminCredentials": {
+            "name": "kafka-admin-credentials",
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "username",
+                "remoteRef": {
+                  "key": "river-test-secrets",
+                  "property": "kafka-admin-username"
+                }
+              },
+              {
+                "secretKey": "password",
+                "remoteRef": {
+                  "key": "river-test-secrets",
+                  "property": "kafka-admin-password"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "prod",
+      "workloads": [
+        {
+          "name": "postgres",
+          "adminCredentials": {
+            "name": "postgres-db-credentials",
+            "allowedNamespaces": ["devops"],
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "username",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "postgres-db-username"
+                }
+              },
+              {
+                "secretKey": "password",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "postgres-db-password"
+                }
+              }
+            ]
+          },
+          "userCredentials": [
+            {
+              "name": "keycloak-db-credentials",
+              "refreshInterval": "1h",
+              "data": [
+                {
+                  "secretKey": "username",
+                  "remoteRef": {
+                    "key": "river-secrets",
+                    "property": "keycloak-db-username"
+                  }
+                },
+                {
+                  "secretKey": "password",
+                  "remoteRef": {
+                    "key": "river-secrets",
+                    "property": "keycloak-db-password"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "nextauth-db-credentials",
+              "refreshInterval": "1h",
+              "data": [
+                {
+                  "secretKey": "username",
+                  "remoteRef": {
+                    "key": "river-secrets",
+                    "property": "nextauth-db-username"
+                  }
+                },
+                {
+                  "secretKey": "password",
+                  "remoteRef": {
+                    "key": "river-secrets",
+                    "property": "nextauth-db-password"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "app-db-credentials",
+              "refreshInterval": "1h",
+              "data": [
+                {
+                  "secretKey": "username",
+                  "remoteRef": {
+                    "key": "river-secrets",
+                    "property": "app-db-username"
+                  }
+                },
+                {
+                  "secretKey": "password",
+                  "remoteRef": {
+                    "key": "river-secrets",
+                    "property": "app-db-password"
+                  }
+                }
+              ]
+            }
+          ],
+          "envFrom": [
+            {
+              "name": "APP_DB_USER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "app-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "APP_DB_PASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "app-db-credentials",
+                  "key": "password"
+                }
+              }
+            },
+            {
+              "name": "KEYCLOAK_DB_USER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "keycloak-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "KEYCLOAK_DB_PASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "keycloak-db-credentials",
+                  "key": "password"
+                }
+              }
+            },
+            {
+              "name": "NEXTAUTH_DB_USER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "nextauth-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "NEXTAUTH_DB_PASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "nextauth-db-credentials",
+                  "key": "password"
+                }
+              }
+            },
+            {
+              "name": "PGUSER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "postgres-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "PGPASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "postgres-db-credentials",
+                  "key": "password"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "replicas": 3,
+          "name": "keycloak",
+          "host": "keycloak.river.sandbox.cvpcorp.io",
+          "realmImports": [ "river-tech-challenge.json" ],
+          "db": {
+            "port": 5432,
+            "name": "postgres",
+            "user": "keycloak",
+            "host": "postgres.prod.svc.cluster.local",
+            "external": true,
+            "secret": {
+              "name": "keycloak-db-credentials",
+              "userKey": "username",
+              "passwordKey": "password"
+            }
+          },
+          "adminCredentials": {
+            "name": "keycloak-admin-credentials",
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "username",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "keycloak-admin-username"
+                }
+              },
+              {
+                "secretKey": "password",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "keycloak-admin-password"
+                }
+              }
+            ]
+          },
+          "clientSecrets": {
+            "name": "keycloak-client-secrets",
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "client-secret",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "client-secret"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "replicas": 1,
+          "name": "kafka",
+          "version": "7.6.1",
+          "host": "kafka.river.sandbox.cvpcorp.io",
+          "connect": {
+            "imageTag": "ghcr.io/cvpcorp/kafka-connect:1.0.3",
+            "envFrom": [
+              {
+                "name": "AWS_ACCESS_KEY_ID",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "awssm-secret",
+                    "key": "access-key"
+                  }
+                }
+              },
+              {
+                "name": "AWS_SECRET_ACCESS_KEY",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "awssm-secret",
+                    "key": "secret-access-key"
+                  }
+                }
+              },
+              {
+                "name": "APP_DB_USER",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "app-db-credentials",
+                    "key": "username"
+                  }
+                }
+              },
+              {
+                "name": "APP_DB_PASSWORD",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "app-db-credentials",
+                    "key": "password"
+                  }
+                }
+              }
+            ],
+            "connectors": [
+              { "name": "streamthoughts-s3-source-entity-data-csv" },
+              { "name": "confluent-jdbc-sink-entity-data-csv" }
+            ]
+          },
+          "adminCredentials": {
+            "name": "kafka-admin-credentials",
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "username",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "kafka-admin-username"
+                }
+              },
+              {
+                "secretKey": "password",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "kafka-admin-password"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "smtp4dev",
+      "workloads": [
+        {
+          "replicas": 1,          
+          "name": "smtp4dev",
+          "host": "smtp.river.sandbox.cvpcorp.io"
+        }
+      ]
+    },
+    {
+      "name": "pgadmin",
+      "workloads": [
+        {
+          "replicas": 1,
+          "name": "pgadmin",
+          "host": "pgadmin.river.sandbox.cvpcorp.io",
+          "adminCredentials": {
+            "name": "pgadmin-credentials",
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "username",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "pgadmin-username"
+                }
+              },
+              {
+                "secretKey": "password",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "pgadmin-password"
+                }
+              }
+            ]
+          }          
+        }
+      ]
+    },
+    {
+      "name": "devops",
+      "workloads": [
+        {
+          "name": "jenkins",
+          "host": "jenkins.river.sandbox.cvpcorp.io",
+          "title": "River Tech Challenge CI/CD Pipelines",
+          "imageTag": "2.461-alpine-jdk17",
+          "tagLabel": "jdk17",
+          "seedFolder": "seed/river",
+          "roleNamespaces": ["dev", "test", "prod"],
+          "adminCredentials": {
+            "name": "jenkins-admin-credentials",
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "username",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "jenkins-username"
+                }
+              },
+              {
+                "secretKey": "password",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "jenkins-password"
+                }
+              }
+            ]
+          },
+          "secrets": [
+            {
+              "name": "google-api-key",
+              "annotations": {
+                "jenkins.io/credentials-description": "Google API key for Google services"
+              },
+              "labels": {
+                "jenkins.io/credentials-type": "secretText"
+              },
+              "refreshInterval": "1h",
+              "data": [
+                {
+                  "secretKey": "text",
+                  "remoteRef": {
+                    "key": "river-secrets",
+                    "property": "google-api-key"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "google-tag-mgr-key",
+              "annotations": {
+                "jenkins.io/credentials-description": "Google Tag Manager key for Google Analytics"
+              },
+              "labels": {
+                "jenkins.io/credentials-type": "secretText"
+              },
+              "refreshInterval": "1h",
+              "data": [
+                {
+                  "secretKey": "text",
+                  "remoteRef": {
+                    "key": "river-secrets",
+                    "property": "google-tag-mgr-key"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "replicas": 1,
+          "name": "sonarqube",
+          "host": "sonarqube.river.sandbox.cvpcorp.io",
+          "db": {
+            "port": 5432,
+            "name": "postgres",
+            "user": "postgres",
+            "host": "postgres.prod.svc.cluster.local",
+            "external": true,
+            "secret": {
+              "name": "postgres-db-credentials",
+              "userKey": "sonarqube-username",
+              "passwordKey": "sonarqube-password"
+            }
+          },
+          "adminCredentials": {
+            "name": "sonarqube-admin-credentials",
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "sonarqube-username",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "sonarqube-username"
+                }
+              },
+              {
+                "secretKey": "sonarqube-password",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "sonarqube-password"
+                }
+              }
+            ]
+          },
+          "jenkinsCredentials": {
+            "name": "sonarqube-jenkins-credentials",
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "username",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "sonarqube-jenkins-username"
+                }
+              },
+              {
+                "secretKey": "password",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "sonarqube-jenkins-password"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "argocd",
+          "host": "argo.river.sandbox.cvpcorp.io",
+          "gitRepo": "https://github.com/cvp-challenges/practice-river-devops.git",
+          "applications": [
+            {
+              "name": "frontend",
+              "path": "frontend/envs",
+              "environments": ["dev"]
+            },
+            {
+              "name": "backend",
+              "path": "backend/envs",
+              "environments": ["dev"]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

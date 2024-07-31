@@ -1,0 +1,55 @@
+{
+  "realm": "river-tech-challenge",
+  "displayName": "Practice River Tech Challenge (Test)",
+  "enabled": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "User",
+        "description": "A User of the system",
+        "containerId": "river-tech-challenge"
+      }
+    ]
+  },
+  "groups": [
+    {
+      "name": "Users",
+      "path": "/Users"
+    }
+  ],
+  "users": [
+    {
+      "username": "user1",
+      "enabled": true,
+      "email": "user1@cvpcorp.com",
+      "emailVerified": true,
+      "firstName": "User",
+      "lastName": "One",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "tc123"
+        }
+      ],
+      "realmRoles": ["User"],
+      "groups": ["/Users"]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "river-tech-challenge-ui",
+      "name": "Practice River Tech Challenge UI (Test)",
+      "description": "UI client for River Tech Challenge practice team",
+      "rootUrl" : "https://test.app.river.sandbox.cvpcorp.io",
+      "baseUrl": "/",
+      "enabled": true,
+      "alwaysDisplayInConsole": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "client-secret",
+      "redirectUris": [ "/*" ],
+      "webOrigins" : [ "*" ],
+      "publicClient": true,
+      "directAccessGrantsEnabled": true
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+name: hopper-identity
+description: Stores credentials and creates roles, policies, etc.
+runtime: nodejs

@@ -1,0 +1,34 @@
+const pulumi = require('@pulumi/pulumi');
+const k8s = require('@pulumi/kubernetes');
+const { config } = new pulumi.Config();
+
+const namespaceName = 'otel'; // Replace with your namespace name
+const releaseName = 'otel'; // Replace with your Helm release name
+
+// Define the values for otel Helm chart
+const otelChartValues = {
+
+global: {
+  storageClass: gp2-resizable,
+  cloud: aws,
+},    
+
+clickhouse: {
+  installCustomStorageClass: true,
+},
+
+};
+
+
+// Load Helm chart values from file
+const helmValues = require('./otelValues.yaml');
+
+// Define Helm chart options
+const helmOpts = {
+    chart: 'signoz', // Replace with your Helm chart name
+    version: '0.31.2', // Replace with your Helm chart version
+    fetchOpts: { repo: 'https://charts.signoz.io' }, // Replace with your Helm chart repository URL
+    values: otelChartValues,
+};
+
+

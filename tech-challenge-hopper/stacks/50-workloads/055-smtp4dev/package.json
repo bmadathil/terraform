@@ -1,0 +1,11 @@
+{
+  "name": "hopper-workloads-055-smtp4dev",
+  "devDependencies": {
+    "@types/node": "20.8.7",
+    "typescript": "5.2.2"
+  },
+  "dependencies": {
+    "@pulumi/kubernetes": "4.4.0",
+    "@pulumi/pulumi": "3.89.0"
+  }
+}

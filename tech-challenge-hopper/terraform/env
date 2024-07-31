@@ -1,0 +1,16 @@
+#!/bin/bash
+
+#export TF_VAR_github_user="bmadathil"
+#export TF_VAR_github_pat="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"
+export TF_VAR_github_user=
+export TF_VAR_github_pat=
+export TF_VAR_AWS_DEFAULT_REGION="us-east-1"
+export TF_VAR_region="us-east-1"
+export TF_VAR_CLUSTER_NAME="rapid"
+export TF_VAR_cluster_name="rapid"
+export TF_VAR_k8s_version="1.28"
+export TF_VAR_CLUSTER_DOMAIN="rapid.cluster"
+export TF_VAR_AWS_ACCESS_KEY_ID=
+export TF_VAR_AWS_SECRET_ACCESS_KEY=
+export TF_VAR_cidr_block="172.16.0.0/16"
+export TF_VAR_hosted_zone="sandbox.cvpcorp.io"

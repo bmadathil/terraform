@@ -1,0 +1,78 @@
+{
+  "name": "splunk",
+  "namespaces": [
+    {
+      "name": "smtp4dev",
+      "workloads": [
+        {
+          "name": "smtp4dev",
+          "host": "smtp.splunk.sandbox.cvpcorp.io"
+        }
+      ]
+    },    
+    {
+      "name": "traefik",
+      "workloads": [
+        {
+          "name": "traefik",
+          "host": "traefik.splunk.sandbox.cvpcorp.io",
+          "email": "splunk-traefik@cvpcorp.com",
+          "adminCredentials": {
+            "name": "traefik-credentials",
+            "type": "kubernetes.io/basic-auth",
+            "data": [
+              {
+                "secretKey": "username",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "traefik-username"
+                }
+              },
+              {
+                "secretKey": "password",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "traefik-password"
+                }
+              }
+            ]
+          },
+          "hostedZones": [
+            {
+              "name": "sandbox.cvpcorp.io",
+              "records": [ "*.splunk" ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "pgadmin",
+      "workloads": [
+        {
+          "name": "pgadmin",
+          "host": "pgadmin.splunk.sandbox.cvpcorp.io",
+          "adminCredentials": {
+            "name": "pgadmin-credentials",
+            "data": [
+              {
+                "secretKey": "username",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "pgadmin-username"
+                }
+              },
+              {
+                "secretKey": "password",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "pgadmin-password"
+                }
+              }
+            ]
+          }          
+        }
+      ]
+    }
+  ]
+}

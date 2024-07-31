@@ -1,0 +1,31 @@
+## Specify Kafka and ZooKeeper cluster configuration parameters
+cluster:
+  enabled: true
+
+  zookeeper:
+    replicas: 3
+    persistence:
+      enabled: false
+
+  kafka:
+    replicas: 0
+    listeners: external
+    externalListeners:
+      - name: external
+        type: ClusterIP
+        tls: false
+        security: plain
+        configurationOverrides:
+          listeners: PLAINTEXT://:9092
+    advertisedListenersConfig:
+      external:
+        listeners: PLAINTEXT://:9092
+    persistence:
+      enabled: false
+    resources:
+      requests:
+        memory: 512Mi
+        cpu: 0.5
+externalZookeeper:
+  servers:
+    - zookeeper.kafka.svc.cluster.local

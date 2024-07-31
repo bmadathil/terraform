@@ -1,0 +1,79 @@
+terraform {
+  required_providers {
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.0"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.0"
+    }
+  }
+}
+
+provider "kubernetes" {
+  config_path = var.kubeconfig
+}
+
+provider "helm" {
+  kubernetes {
+    config_path = var.kubeconfig
+  }
+}
+
+locals {
+  external_secrets = "external-secrets"
+  namespace        = "kube-system"
+}
+
+resource "kubernetes_secret" "awssm_secret" {
+  metadata {
+    name = "awssm-secret"
+    annotations = {
+      "reflector.v1.k8s.emberstack.com/reflection-allowed"       = "true"
+      "reflector.v1.k8s.emberstack.com/reflection-auto-enabled"  = "true"
+      "reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces" = join(",", [for ns in var.namespaces : ns.name])
+    }
+  }
+
+  type = "Opaque"
+
+  data = {
+    "access-key"        = var.AWS_ACCESS_KEY_ID
+    "secret-access-key" = var.AWS_SECRET_ACCESS_KEY
+  }
+}
+
+resource "kubernetes_manifest" "external_secrets_store" {
+  for_each = { for ns in var.namespaces : ns.name => ns }
+
+  manifest = {
+    apiVersion = "external-secrets.io/v1beta1"
+    kind       = "SecretStore"
+    metadata = {
+      name      = "external-secrets-store"
+      namespace = each.key
+    }
+    spec = {
+      provider = {
+        aws = {
+          service = "SecretsManager"
+          region  = "us-east-1"
+          auth = {
+            secretRef = {
+              accessKeyIDSecretRef = {
+                name = "awssm-secret"
+                key  = "access-key"
+              }
+              secretAccessKeySecretRef = {
+                name = "awssm-secret"
+                key  = "secret-access-key"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+}

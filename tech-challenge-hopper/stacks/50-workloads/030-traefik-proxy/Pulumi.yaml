@@ -1,0 +1,3 @@
+name: hopper-workloads-030-traefik-proxy
+description: Deploys the named workload to EKS.
+runtime: nodejs

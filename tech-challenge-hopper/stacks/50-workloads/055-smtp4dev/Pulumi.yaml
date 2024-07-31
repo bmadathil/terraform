@@ -1,0 +1,3 @@
+name: hopper-workloads-055-smtp4dev
+description: Deploys the named workload to EKS.
+runtime: nodejs

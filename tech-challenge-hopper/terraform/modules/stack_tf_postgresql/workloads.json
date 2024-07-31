@@ -1,0 +1,551 @@
+{
+  "namespaces": [
+    {
+      "name": "dev",
+      "workloads": [
+        {
+          "name": "postgres",
+          "adminCredentials": {
+            "name": "postgres-db-credentials",
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "username",
+                "remoteRef": {
+                  "key": "river-dev-secrets",
+                  "property": "postgres-db-username"
+                }
+              },
+              {
+                "secretKey": "password",
+                "remoteRef": {
+                  "key": "river-dev-secrets",
+                  "property": "postgres-db-password"
+                }
+              }
+            ]
+          },
+          "userCredentials": [
+            {
+              "name": "keycloak-db-credentials",
+              "refreshInterval": "1h",
+              "data": [
+                {
+                  "secretKey": "username",
+                  "remoteRef": {
+                    "key": "river-dev-secrets",
+                    "property": "keycloak-db-username"
+                  }
+                },
+                {
+                  "secretKey": "password",
+                  "remoteRef": {
+                    "key": "river-dev-secrets",
+                    "property": "keycloak-db-password"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "nextauth-db-credentials",
+              "refreshInterval": "1h",
+              "data": [
+                {
+                  "secretKey": "username",
+                  "remoteRef": {
+                    "key": "river-dev-secrets",
+                    "property": "nextauth-db-username"
+                  }
+                },
+                {
+                  "secretKey": "password",
+                  "remoteRef": {
+                    "key": "river-dev-secrets",
+                    "property": "nextauth-db-password"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "app-db-credentials",
+              "refreshInterval": "1h",
+              "data": [
+                {
+                  "secretKey": "username",
+                  "remoteRef": {
+                    "key": "river-dev-secrets",
+                    "property": "app-db-username"
+                  }
+                },
+                {
+                  "secretKey": "password",
+                  "remoteRef": {
+                    "key": "river-dev-secrets",
+                    "property": "app-db-password"
+                  }
+                }
+              ]
+            }
+          ],
+          "envFrom": [
+            {
+              "name": "APP_DB_USER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "app-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "APP_DB_PASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "app-db-credentials",
+                  "key": "password"
+                }
+              }
+            },
+            {
+              "name": "KEYCLOAK_DB_USER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "keycloak-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "KEYCLOAK_DB_PASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "keycloak-db-credentials",
+                  "key": "password"
+                }
+              }
+            },
+            {
+              "name": "NEXTAUTH_DB_USER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "nextauth-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "NEXTAUTH_DB_PASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "nextauth-db-credentials",
+                  "key": "password"
+                }
+              }
+            },
+            {
+              "name": "PGUSER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "postgres-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "PGPASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "postgres-db-credentials",
+                  "key": "password"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "test",
+      "workloads": [
+        {
+          "name": "postgres",
+          "adminCredentials": {
+            "name": "postgres-db-credentials",
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "username",
+                "remoteRef": {
+                  "key": "river-test-secrets",
+                  "property": "postgres-db-username"
+                }
+              },
+              {
+                "secretKey": "password",
+                "remoteRef": {
+                  "key": "river-test-secrets",
+                  "property": "postgres-db-password"
+                }
+              }
+            ]
+          },
+          "userCredentials": [
+            {
+              "name": "keycloak-db-credentials",
+              "refreshInterval": "1h",
+              "data": [
+                {
+                  "secretKey": "username",
+                  "remoteRef": {
+                    "key": "river-test-secrets",
+                    "property": "keycloak-db-username"
+                  }
+                },
+                {
+                  "secretKey": "password",
+                  "remoteRef": {
+                    "key": "river-test-secrets",
+                    "property": "keycloak-db-password"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "nextauth-db-credentials",
+              "refreshInterval": "1h",
+              "data": [
+                {
+                  "secretKey": "username",
+                  "remoteRef": {
+                    "key": "river-test-secrets",
+                    "property": "nextauth-db-username"
+                  }
+                },
+                {
+                  "secretKey": "password",
+                  "remoteRef": {
+                    "key": "river-test-secrets",
+                    "property": "nextauth-db-password"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "app-db-credentials",
+              "refreshInterval": "1h",
+              "data": [
+                {
+                  "secretKey": "username",
+                  "remoteRef": {
+                    "key": "river-test-secrets",
+                    "property": "app-db-username"
+                  }
+                },
+                {
+                  "secretKey": "password",
+                  "remoteRef": {
+                    "key": "river-test-secrets",
+                    "property": "app-db-password"
+                  }
+                }
+              ]
+            }
+          ],
+          "envFrom": [
+            {
+              "name": "APP_DB_USER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "app-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "APP_DB_PASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "app-db-credentials",
+                  "key": "password"
+                }
+              }
+            },
+            {
+              "name": "KEYCLOAK_DB_USER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "keycloak-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "KEYCLOAK_DB_PASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "keycloak-db-credentials",
+                  "key": "password"
+                }
+              }
+            },
+            {
+              "name": "NEXTAUTH_DB_USER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "nextauth-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "NEXTAUTH_DB_PASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "nextauth-db-credentials",
+                  "key": "password"
+                }
+              }
+            },
+            {
+              "name": "PGUSER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "postgres-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "PGPASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "postgres-db-credentials",
+                  "key": "password"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "prod",
+      "workloads": [
+        {
+          "name": "postgres",
+          "adminCredentials": {
+            "name": "postgres-db-credentials",
+            "allowedNamespaces": ["devops"],
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "username",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "postgres-db-username"
+                }
+              },
+              {
+                "secretKey": "password",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "postgres-db-password"
+                }
+              }
+            ]
+          },
+          "userCredentials": [
+            {
+              "name": "keycloak-db-credentials",
+              "refreshInterval": "1h",
+              "data": [
+                {
+                  "secretKey": "username",
+                  "remoteRef": {
+                    "key": "river-secrets",
+                    "property": "keycloak-db-username"
+                  }
+                },
+                {
+                  "secretKey": "password",
+                  "remoteRef": {
+                    "key": "river-secrets",
+                    "property": "keycloak-db-password"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "nextauth-db-credentials",
+              "refreshInterval": "1h",
+              "data": [
+                {
+                  "secretKey": "username",
+                  "remoteRef": {
+                    "key": "river-secrets",
+                    "property": "nextauth-db-username"
+                  }
+                },
+                {
+                  "secretKey": "password",
+                  "remoteRef": {
+                    "key": "river-secrets",
+                    "property": "nextauth-db-password"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "app-db-credentials",
+              "refreshInterval": "1h",
+              "data": [
+                {
+                  "secretKey": "username",
+                  "remoteRef": {
+                    "key": "river-secrets",
+                    "property": "app-db-username"
+                  }
+                },
+                {
+                  "secretKey": "password",
+                  "remoteRef": {
+                    "key": "river-secrets",
+                    "property": "app-db-password"
+                  }
+                }
+              ]
+            }
+          ],
+          "envFrom": [
+            {
+              "name": "APP_DB_USER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "app-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "APP_DB_PASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "app-db-credentials",
+                  "key": "password"
+                }
+              }
+            },
+            {
+              "name": "KEYCLOAK_DB_USER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "keycloak-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "KEYCLOAK_DB_PASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "keycloak-db-credentials",
+                  "key": "password"
+                }
+              }
+            },
+            {
+              "name": "NEXTAUTH_DB_USER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "nextauth-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "NEXTAUTH_DB_PASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "nextauth-db-credentials",
+                  "key": "password"
+                }
+              }
+            },
+            {
+              "name": "PGUSER",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "postgres-db-credentials",
+                  "key": "username"
+                }
+              }
+            },
+            {
+              "name": "PGPASSWORD",
+              "valueFrom": {
+                "secretKeyRef": {
+                  "name": "postgres-db-credentials",
+                  "key": "password"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "replicas": 3,
+          "name": "keycloak",
+          "host": "keycloak.river.sandbox.cvpcorp.io",
+          "realmImports": [
+            "river-tech-challenge.json"
+          ],
+          "db": {
+            "port": 5432,
+            "name": "postgres",
+            "user": "keycloak",
+            "host": "postgres.prod.svc.cluster.local",
+            "external": true,
+            "secret": {
+              "name": "keycloak-db-credentials",
+              "userKey": "username",
+              "passwordKey": "password"
+            }
+          },
+          "adminCredentials": {
+            "name": "keycloak-admin-credentials",
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "username",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "keycloak-admin-username"
+                }
+              },
+              {
+                "secretKey": "password",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "keycloak-admin-password"
+                }
+              }
+            ]
+          },
+          "clientSecrets": {
+            "name": "keycloak-client-secrets",
+            "refreshInterval": "1h",
+            "data": [
+              {
+                "secretKey": "client-secret",
+                "remoteRef": {
+                  "key": "river-secrets",
+                  "property": "client-secret"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+

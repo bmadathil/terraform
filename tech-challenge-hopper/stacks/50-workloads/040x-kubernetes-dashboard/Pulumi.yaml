@@ -1,0 +1,3 @@
+name: hopper-workloads-040-kubernetes-dashboard
+description: Deploys the named workload to EKS.
+runtime: nodejs

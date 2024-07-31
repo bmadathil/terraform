@@ -1,0 +1,3 @@
+name: hopper-workloads-007-external-secrets
+description: Deploys the named workload to EKS.
+runtime: nodejs
